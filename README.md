@@ -10,6 +10,7 @@ Demo application to demonstrate war-room chat creation on MS Teams
     - [2  Prerequisites](#2prerequisites)
     - [3  High‑level Architecture](#3highlevel-architecture)
     - [4  Feature‑by‑Feature Plan (Copilot‑first)](#4featurebyfeature-plan-copilotfirst)
+      - [4.1 Input arguments](#41-input-arguments)
     - [5  Development Workflow in VS Code (Copilot Business)](#5development-workflow-in-vscode-copilotbusiness)
     - [6  Security Controls](#6security-controls)
     - [7  Testing Strategy](#7testing-strategy)
@@ -36,31 +37,21 @@ Automate the creation of an incident “war‑room” chat, invite responders, i
      - https://learn.microsoft.com/en-us/graph/api/chat-post?view=graph-rest-1.0&tabs=http
      - https://learn.microsoft.com/en-us/graph/permissions-reference#chatcreate
      - Create a group chat: https://learn.microsoft.com/en-us/graph/api/chat-post?view=graph-rest-1.0&tabs=http#example-2-create-a-group-chat
-
----
-
-| Property | Type | Description |
-| -------- | ---- | ----------- |
-| topic | (Optional) String | The title of the chat. The chat title can be provided only if the chat is of group type. |
-| chatType | chatType | Specifies the type of chat. Possible values are: group and oneOnOne. |
-| members | conversationMember collection | List of conversation members that should be added. Every user who will participate in the chat, including the user who initiates the create request, must be specified in this list. Each member must be assigned a role of owner or guest. In-tenant guest users must be assigned the guest role. Out-of-tenant external users must be assigned with owner role. |
-
----
-
    - `ChatMember.ReadWrite.All`
+      - Add and remove members from all chats, without a signed-in user.
+      - https://learn.microsoft.com/en-us/graph/permissions-reference#chatmemberreadwriteall
+      - https://learn.microsoft.com/en-us/graph/api/chat-get-members?view=graph-rest-1.0&tabs=http
    - `TeamsAppInstallation.ReadWriteForChat.All`
+     - Allows the app to read, install, upgrade, and uninstall Teams apps in any chat, without a signed-in user. Does not give the ability to read application-specific settings.
+     - https://learn.microsoft.com/en-us/graph/api/chat-teamsappinstallation-upgrade?view=graph-rest-1.0&tabs=http
+     - https://learn.microsoft.com/en-us/graph/api/chat-get-installedapps?view=graph-rest-1.0&tabs=http
    - `User.ReadBasic.All`
-     - https://learn.microsoft.com/en-us/graph/permissions-reference#userreadbasicall
      - Allows the app to read a basic set of profile properties of other users in your organization without a signed-in user. Includes display name, first and last name, email address, open extensions, and photo.
      - displayName, givenName, id, mail, photo, securityIdentifier, surname, userPrincipalName
-
-
-
-
-
-1. The bot’s Teams App ID (for RSC) packaged and published in the tenant app catalog.
-2. VS Code extensions: *Python*, *GitHub Copilot*, *REST Client* (optional for Graph testing).
-3. Environment variables for `CLIENT_ID`, `TENANT_ID`, `CLIENT_SECRET`.
+     - https://learn.microsoft.com/en-us/graph/permissions-reference#userreadbasicall
+2. The bot’s Teams App ID (for RSC) packaged and published in the tenant app catalog.
+3. VS Code extensions: *Python*, *GitHub Copilot*, *REST Client* (optional for Graph testing).
+4. Environment variables for `CLIENT_ID`, `TENANT_ID`, `CLIENT_SECRET`.
 
 ### 3  High‑level Architecture
 
@@ -87,6 +78,14 @@ flowchart TD
 | 7 | **Logging & telemetry**                    | *"Integrate structured logging with loguru; emit Graph call latency and response codes."*                                                            | Log file lines contain ISO timestamps, event name, latency.                      |
 | 8 | **Error handling**                         | *"Generate an exception hierarchy mapping Graph 4xx/5xx to custom errors; implement exponential backoff."*                                           | Script exits with non‑zero on fatal; retries capped at 3.                        |
 
+#### 4.1 Input arguments
+
+- config (yaml) file, like: "config/config.yaml"
+- logging directory, like: "logs"
+- chat room name, like: "TEST-WAR-ROOM SIXXXXXX"
+- chat room initial message, like: "Hi, this war-room is automatically created."
+- chat room participant email address list, like: "x.y@z.com, a.b@c.org, e.f@z.com"
+
 ### 5  Development Workflow in VS Code (Copilot Business)
 
 1. **Bootstrap project** – open empty folder, run `python -m venv .venv` → *Copilot suggests* requirements section.
@@ -97,27 +96,20 @@ flowchart TD
 
 ### 6  Security Controls
 
-- Store secret in Azure Key Vault; fetch at runtime.
+- Store secret in a yaml config file; fetch at runtime.
 - Conditional Access policy: restrict service principal to trusted IPs.
-- Rotate client secret every 90 days via GitHub Actions.
+- Rotate client secret after test, configure shor expire date, like 30 days for a test.
 
 ### 7  Testing Strategy
 
+- Test with at least, 3 email addresses defined in cli.
 - Unit tests with `pytest` + `responses` to stub Graph API.
-- Integration test pipeline against a dedicated Dev tenant; cleans up chats after run.
+- Clean up chats after run, always include tester.
 
 ### 8  Deployment
 
-```bash
-az deployment group create \
-  --resource-group rg-warroom \
-  --template-file bicep/main.bicep
-```
-
-Use GitHub Actions workflow *deploy.yml* – Copilot can draft the YAML when you type “`name: CI`”.
+To be discussed later.
 
 ### 9  Next Steps
 
-- Add optional file upload of incident timeline to chat.
-- Extend to Teams channel creation if severity ≥ SEV‑0.
-
+To be discussed later.
